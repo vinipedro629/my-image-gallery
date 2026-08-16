@@ -64,7 +64,7 @@ export async function fetchPins(currentUserId?: string | null): Promise<Pin[]> {
     height: (r["height"] as number | null) ?? null,
     created_at: r["created_at"] as string,
     url: urlByPath.get(r.storage_path) ?? "",
-    author: r.profiles?.display_name ?? "Alguém",
+    author: nameById.get(r.user_id) ?? "Alguém",
     likes: r.likes?.length ?? 0,
     likedByMe: !!currentUserId && (r.likes ?? []).some((l) => l.user_id === currentUserId),
   }));
