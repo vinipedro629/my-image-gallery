@@ -19,7 +19,7 @@ export type Pin = {
 export async function fetchPins(currentUserId?: string | null): Promise<Pin[]> {
   const { data, error } = await supabase
     .from("pins")
-    .select("*, profiles(display_name), likes(user_id)")
+    .select("*, likes(user_id)")
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -27,11 +27,18 @@ export async function fetchPins(currentUserId?: string | null): Promise<Pin[]> {
   const rows = (data ?? []) as unknown as Array<
     Record<string, unknown> & {
       storage_path: string;
-      profiles: { display_name: string } | null;
+      user_id: string;
       likes: Array<{ user_id: string }>;
     }
   >;
   if (rows.length === 0) return [];
+
+  const authorIds = [...new Set(rows.map((r) => r.user_id))];
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, display_name")
+    .in("id", authorIds);
+  const nameById = new Map((profiles ?? []).map((p) => [p.id, p.display_name]));
 
   const { data: signed } = await supabase.storage
     .from("media")
@@ -44,6 +51,7 @@ export async function fetchPins(currentUserId?: string | null): Promise<Pin[]> {
   (signed ?? []).forEach((s) => {
     if (s.path && s.signedUrl) urlByPath.set(s.path, s.signedUrl);
   });
+
 
   return rows.map((r) => ({
     id: r["id"] as string,
